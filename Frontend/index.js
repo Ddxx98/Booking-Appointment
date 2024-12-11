@@ -2,13 +2,12 @@
 async function handleFormSubmit(event) {
     event.preventDefault()
     const obj = {
-        username: event.target.username.value,
+        name: event.target.name.value,
         email: event.target.email.value,
         phone: event.target.phone.value,
     }
     let email;
     await axios.get(`http://localhost:3000/user/email/${obj.email}`).then((res)=>{
-        console.log(res.data.email)
         email = res.data.email;
     }).catch((err)=>{
         console.log(err)
@@ -16,12 +15,19 @@ async function handleFormSubmit(event) {
     console.log(email)
     if (email == null) {
         await axios.post('http://localhost:3000/user', {data:JSON.stringify(obj)})
-          .then((response) => {
-            console.log(response);
-          }, (error) => {
-            console.log(error);
+          .then((res) => {
+            displayUserOnScreen(res.data)
+            console.log(res);
+          }, (err) => {
+            console.log(err);
           });
-        const ul = document.querySelector("ul");
+    }
+    const form = document.getElementById("form")
+    form.reset()
+}
+
+function displayUserOnScreen(data){
+    const ul = document.querySelector("ul");
         let listItem = document.createElement("li");
         const delButton = document.createElement("button");
         delButton.textContent = "Delete";
@@ -30,31 +36,53 @@ async function handleFormSubmit(event) {
         const editButton = document.createElement("button");
         editButton.textContent = "Edit";
         editButton.className = "edit";
-        listItem.textContent = `${event.target.username.value}-${event.target.email.value}-${event.target.phone.value}`;
+        listItem.textContent = `${data.name}-${data.email}-${data.phone}-`;
         listItem.appendChild(delButton)
         listItem.appendChild(editButton)
         ul.appendChild(listItem);
-    }
 }
+
 const ul = document.querySelector("ul");
 if (ul != null) {
-    ul.addEventListener("click", function (e) {
+    ul.addEventListener("click", async function (e) {
         e.preventDefault()
         if (e.target.classList.contains("delete")) {
             ul.removeChild(e.target.parentElement);
             const text = e.target.parentElement.textContent.split("-")
-            localStorage.removeItem(text[1])
+            console.log(text[1])
+            await axios.delete(`http://localhost:3000/user/${text[1]}`).then((res)=>{
+                console.log(res)
+            }).catch((err)=>{
+                console.log(err)
+            })
         }else if(e.target.classList.contains("edit")){
             ul.removeChild(e.target.parentElement);
             const text = e.target.parentElement.textContent.split("-")
-            const user = JSON.parse(localStorage.getItem(text[1]));
-            localStorage.removeItem(text[1])
-            const username = document.getElementById("username");
+            await axios.delete(`http://localhost:3000/user/${text[1]}`).then((res)=>{
+                console.log(res)
+            }).catch((err)=>{
+                console.log(err)
+            })
+            const name = document.getElementById("name");
             const email = document.getElementById("email");
             const phone = document.getElementById("phone");
-            username.value = user.username;
-            email.value = user.email;
-            phone.value = user.phone;
+            name.value = text[0];
+            email.value = text[1];
+            phone.value = text[2];
         }
     })
 }
+
+window.addEventListener("DOMContentLoaded", function (e) {
+    e.preventDefault();
+    axios
+      .get(
+        "http://localhost:3000/user"
+      )
+      .then((response) => {
+        for (let i = 0; i < response.data.length; i++) {
+          displayUserOnScreen(response.data[i])
+        }
+      })
+      .catch((error) => console.log(error));
+  })
